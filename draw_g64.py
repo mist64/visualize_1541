@@ -15,7 +15,7 @@ tracksize = data[10] | data[11] << 8
 #print notracks
 #print tracksize
 
-size = 10000
+size = 5000
 img = Image.new('RGB', (size, size), color = 'white')
 draw = ImageDraw.Draw(img)
 
@@ -30,16 +30,29 @@ for i in range(0, notracks):
 
 	sectorlen = len * 8
 	radius = size * .45 - trackno * size / 200
+	radius1 = radius - 20
+	radius2 = radius + 20
 
-	for i in range(0, sectorlen):
+	for i in range(0, sectorlen / 10):
 		angle = - float(i) / sectorlen * 2 * math.pi
-		x = int(round(size / 2 + radius * math.sin(angle)))
-		y = int(round(size / 2 + radius * math.cos(angle)))
+		x1 = int(round(size / 2 + radius1 * math.sin(angle)))
+		y1 = int(round(size / 2 + radius1 * math.cos(angle)))
+		x2 = int(round(size / 2 + radius2 * math.sin(angle)))
+		y2 = int(round(size / 2 + radius2 * math.cos(angle)))
 #		print hex(data[offset + i]),
-		pixel = 255 - ((data[offset + i / 8 + 2] >> (i % 7)) & 1) * 255
-		value = (pixel, pixel, pixel)
+		byte = data[offset + i / 8 + 2]
+		if byte == 0:
+			value = (0, 0, 0xff)
+		elif byte == 0xff:
+			value = (0xff, 0, 0)
+		else:
+#			value = (byte, byte, byte)
+			pixel = ((byte >> (i % 7)) & 1) * 255
+			value = (0, pixel, 0)
+
 #		img.putpixel((x, y), value)
-		r = 20
-		draw.ellipse((x - r, y - r, x + r, y + r), fill = value)
+#		r = 20
+#		draw.ellipse((x - r, y - r, x + r, y + r), fill = value)
+		draw.line((x1, y1, x2, y2), fill = value)
 
 img.save(filename_out)
