@@ -15,6 +15,8 @@ size = 40000
 img = Image.new('RGB', (size, size), color = 'white')
 draw = ImageDraw.Draw(img)
 
+track_distance = size / 150
+
 for i in range(0, notracks):
 	trackno = i / 2 + 1
 	offset = data[12 + 4 * i] | data[12 + 4 * i + 1] << 8 | data[12 + 4 * i + 2] << 16 | data[12 + 4 * i + 3] << 24
@@ -25,9 +27,9 @@ for i in range(0, notracks):
 	print "<!-- track {}, offset {}, size {} -->".format(trackno, offset, len)
 
 	sectorlen = len * 8
-	radius = size * .45 - trackno * size / 120
-	radius1 = radius - size / 300
-	radius2 = radius + size / 300
+	radius = size * .99 / 2 - trackno * track_distance
+	radius1 = radius - track_distance / 2.1
+	radius2 = radius + track_distance / 2.1
 
 	for i in range(0, sectorlen ):
 		angle = - float(i) / sectorlen * 2 * math.pi
