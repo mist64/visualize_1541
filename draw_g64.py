@@ -21,6 +21,8 @@ draw = ImageDraw.Draw(img)
 
 print '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">'
 print '<svg width="{}" height="{}">'.format(size, size)
+print '    <defs>'
+print '        <linearGradient id="Gradient-1">'
 
 
 for i in range(0, notracks):
@@ -58,8 +60,12 @@ for i in range(0, notracks):
 #		r = 20
 #		draw.ellipse((x - r, y - r, x + r, y + r), fill = value)
 		draw.line((x1, y1, x2, y2), fill = value)
-		print '<line x1="{}" y1="{}" x2="{}" y2="{}" stroke="#333333" stroke-width="3px"></line>'.format(x1,y1,x2,y2)
+#		print '<line x1="{}" y1="{}" x2="{}" y2="{}" stroke="#333333" stroke-width="3px"></line>'.format(x1,y1,x2,y2)
+		print '            <stop offset="{}%" stop-color="#{:02x}{:02x}{:02x}" />'.format(-angle / 2 / math.pi * 100, value[0], value[1], value[2])
 
 img.save(filename_out)
 
+print '        </linearGradient>'
+print '    </defs>'
+print '    <rect x="10" y="10" width="200" height="100" fill= "url(#Gradient-1)" stroke="#333333" stroke-width="3px" />'
 print '</svg>'
