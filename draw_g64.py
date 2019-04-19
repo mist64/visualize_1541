@@ -31,20 +31,20 @@ for i in range(0, notracks):
 	radius1 = radius - track_distance / 2.1
 	radius2 = radius + track_distance / 2.1
 
-	for i in range(0, sectorlen ):
+	for i in range(0, sectorlen):
 		angle = - float(i) / sectorlen * 2 * math.pi
 		x1 = int(round(size / 2 + radius1 * math.sin(angle)))
 		y1 = int(round(size / 2 + radius1 * math.cos(angle)))
 		x2 = int(round(size / 2 + radius2 * math.sin(angle)))
 		y2 = int(round(size / 2 + radius2 * math.cos(angle)))
 		byte = data[offset + i / 8 + 2]
-		if byte == 0:
-			value = (0, 0, 0xff)
+		if byte == 0x00:
+			value = (0, 0, 0xff) # empty = blue
 		elif byte == 0xff:
-			value = (0xff, 0, 0)
+			value = (0xff, 0, 0) # sync = red
 		else:
 			pixel = ((byte >> (i % 7)) & 1) * 255
-			value = (0, pixel, 0)
+			value = (0, pixel, 0) # shades of green
 
 		draw.line((x1, y1, x2, y2), fill = value, width = 2)
 
