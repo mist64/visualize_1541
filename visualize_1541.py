@@ -1,15 +1,6 @@
 import sys, math
 from PIL import Image, ImageDraw
 
-def speed_for_track(track):
-	if track < 18:
-		return 3
-	if track < 25:
-		return 2
-	if track < 31:
-		return 1
-	return 0
-
 filename_in = sys.argv[1]
 filename_out = sys.argv[2]
 
@@ -29,11 +20,11 @@ track_distance = size / 150
 for i in range(0, notracks):
 	trackno = i / 2 + 1
 	offset = data[12 + 4 * i] | data[12 + 4 * i + 1] << 8 | data[12 + 4 * i + 2] << 16 | data[12 + 4 * i + 3] << 24
+	speed = data[0x15c + 4 * i] | data[0x15c + 4 * i + 1] << 8 | data[0x15c + 4 * i + 2] << 16 | data[0x15c + 4 * i + 3] << 24
 	if not offset:
 		continue
 
 	len = data[offset] | data[offset + 1] << 8
-	print "track {}, offset {}, size {}".format(trackno, offset, len)
 
 	sectorlen = len * 8
 	radius = size * .99 / 2 - trackno * track_distance
@@ -43,9 +34,11 @@ for i in range(0, notracks):
 	# G64 files built by tools might not contain the tail gap data,
 	# so if there is significantly less data on the track than we expect,
 	# don't scale it to 360 degrees, but leave the tail area empty.
-	sector_capacity = 200000 / [32, 30, 28, 26][speed_for_track(trackno)] * 8
-	if abs(1 - (float(sectorlen) / sector_capacity)) < .005:
+	sector_capacity = 200000 / [32, 30, 28, 26][speed] * 8
+	if float(sectorlen) / sector_capacity > .995:
 		sector_capacity = sectorlen
+
+	print "track {}, offset {}, size {}, speed {}, capacity {}".format(trackno, offset, len, speed, sector_capacity / 8)
 
 	for i in range(0, sectorlen):
 		angle = float(i) / sector_capacity * 2 * math.pi
