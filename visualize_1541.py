@@ -35,7 +35,7 @@ for i in range(0, notracks):
 	# so if there is significantly less data on the track than we expect,
 	# don't scale it to 360 degrees, but leave the tail area empty.
 	sector_capacity = 200000 / [32, 30, 28, 26][speed] * 8
-	if float(sectorlen) / sector_capacity > .995:
+	if float(sectorlen) / sector_capacity > .993:
 		sector_capacity = sectorlen
 
 	print "track {}, offset {}, size {}, speed {}, capacity {}".format(trackno, offset, len, speed, sector_capacity / 8)
