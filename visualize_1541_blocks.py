@@ -53,12 +53,22 @@ for i in range(0, notracks):
 			else:
 				one_bits = 0
 				if is_sync:
-					if is_header:
-						x = 200
+					remaining_bits = 7 - j
+					byte_part = (byte & (((1 << (remaining_bits + 1)) - 1))) << j
+					next_byte = data[offset + i + 2 + 1]
+					byte_part_2 = next_byte >> (8 - j)
+					next_8_bits = byte_part | byte_part_2
+#					print j, hex(byte), hex(byte_part), hex(next_byte), hex(byte_part_2), hex(next_8_bits)
+					if next_8_bits == 0x52:
+						is_header = True
 					else:
+						is_header = False # 0x55
+
+					if is_header:
 						y += 1
 						x = 0
-					is_header = not is_header
+					else:
+						x = 200
 				is_sync = False;
 
 			if is_sync:
