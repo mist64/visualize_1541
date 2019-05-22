@@ -56,7 +56,7 @@ def sector_offset_for_track(track):
 	return ret
 
 def y_for_track_sector(track, sector):
-	return sector_offset_for_track(track) + 2 * (track - 1) + sector
+	return sector_offset_for_track(track) + 3 * (track - 1) + sector
 
 filename_in = sys.argv[1]
 filename_out = sys.argv[2]
@@ -69,9 +69,10 @@ notracks = data[9]
 tracksize = data[10] | data[11] << 8
 
 sizex = 3000
-sizey= 750
+sizey= 927
 img = Image.new('RGB', (sizex, sizey), color = 'white')
 pixels = img.load()
+draw = ImageDraw.Draw(img)
 
 # draw outside = don't draw
 x = sizex
@@ -82,6 +83,11 @@ sector = 0xff
 
 for i in range(0, notracks):
 	trackno = i / 2 + 1
+
+	track_y = y_for_track_sector(trackno, 0)
+	draw.line((0, track_y - 2, sizex - 1, track_y - 2), fill = (0, 0, 0), width = 1)
+	draw.text((5, track_y), str(trackno), fill=(0, 0, 0))
+
 	offset = data[12 + 4 * i] | data[12 + 4 * i + 1] << 8 | data[12 + 4 * i + 2] << 16 | data[12 + 4 * i + 3] << 24
 	speed = data[0x15c + 4 * i] | data[0x15c + 4 * i + 1] << 8 | data[0x15c + 4 * i + 2] << 16 | data[0x15c + 4 * i + 3] << 24
 	if not offset:
@@ -132,7 +138,7 @@ for i in range(0, notracks):
 					is_header = True
 					y = y_for_track_sector(track, sector)
 #					print "header", track, sector
-					x = 0
+					x = 20
 				elif code == 7: # data
 					if is_header:
 						is_header = False
@@ -156,7 +162,7 @@ for i in range(0, notracks):
 							print "Warning: No header! Assuming sector {}".format(sector)
 					y = y_for_track_sector(track, sector)
 #					print "data", track, sector
-					x = 170
+					x = 190
 				else:
 					print "Warning: Code {}".format(code)
 					checksum = de_gcr_byte(header_data, j + 10)
