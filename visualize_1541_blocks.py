@@ -1,6 +1,11 @@
 import sys, math
 from PIL import Image, ImageDraw
 
+verbose = False
+
+sizex = 3000
+sizey = 927
+
 def get_8_bits(data, offset):
 	byte_offset = offset / 8
 	bit_offset = offset % 8
@@ -32,10 +37,16 @@ def de_gcr(a):
 		0b11110,
 		0b10101
 	]
+	if not a in gcr_code:
+		return -1
 	return gcr_code.index(a)
 
 def de_gcr_byte(data, offset):
-	return de_gcr(get_5_bits(data, offset)) << 4 | de_gcr(get_5_bits(data, offset + 5))
+	hi = de_gcr(get_5_bits(data, offset))
+	lo = de_gcr(get_5_bits(data, offset + 5))
+	if hi == -1 or lo == -1:
+		return -1
+	return  hi << 4 | lo
 
 def speed_for_track(track):
 	if track < 18:
@@ -56,6 +67,8 @@ def sector_offset_for_track(track):
 	return ret
 
 def y_for_track_sector(track, sector):
+	if sector >= sectors_for_track(track) or sector < 0:
+		return sizey
 	return sector_offset_for_track(track) + 3 * (track - 1) + sector
 
 filename_in = sys.argv[1]
@@ -68,8 +81,6 @@ version = data[8]
 notracks = data[9]
 tracksize = data[10] | data[11] << 8
 
-sizex = 3000
-sizey= 927
 img = Image.new('RGB', (sizex, sizey), color = 'white')
 pixels = img.load()
 draw = ImageDraw.Draw(img)
@@ -78,14 +89,11 @@ draw = ImageDraw.Draw(img)
 x = sizex
 y = sizey
 
-track = 0x00
-sector = 0xff
-
 for i in range(0, notracks):
 	trackno = i / 2 + 1
 
 	track_y = y_for_track_sector(trackno, 0)
-	draw.line((0, track_y - 2, sizex - 1, track_y - 2), fill = (0, 0, 0), width = 1)
+	draw.line((0, track_y - 2, sizex - 1, track_y - 2), fill = (0xc0, 0xc0, 0xc0), width = 1)
 	draw.text((5, track_y), str(trackno), fill=(0, 0, 0))
 
 	offset = data[12 + 4 * i] | data[12 + 4 * i + 1] << 8 | data[12 + 4 * i + 2] << 16 | data[12 + 4 * i + 3] << 24
@@ -97,20 +105,16 @@ for i in range(0, notracks):
 
 	sectorlen = len * 8
 
-	# G64 files built by tools might not contain the tail gap data,
-	# so if there is significantly less data on the track than we expect,
-	# don't scale it to 360 degrees, but leave the tail area empty.
-	sector_capacity = 200000 / [32, 30, 28, 26][speed] * 8
-	if float(sectorlen) / sector_capacity > .993:
-		sector_capacity = sectorlen
-
-	print "track {}, offset {}, size {}, speed {}, capacity {}".format(trackno, offset, len, speed, sector_capacity / 8)
+	print "track {}, offset {}, size {}, speed {}".format(trackno, offset, len, speed)
 
 	is_sync = False
 	is_header = False
 	last_sync = 0
+	before_first_sync = True
 
 	track_data = data[offset + 2:]
+
+	sector = -1
 
 	for i in range(0, len):
 		byte = track_data[i]
@@ -124,9 +128,10 @@ for i in range(0, notracks):
 			if is_sync and bit == 0:
 				is_sync = False;
 
-				was_short_data = not is_header and  i - last_sync < 320
+				was_short_data = not before_first_sync and not is_header and  i - last_sync < 320
 				if was_short_data:
 					print "Warning: Sector {}: short data: {} bytes".format(sector, i - last_sync)
+				before_first_sync = False
 
 				last_sync = i
 				header_data = track_data[i:]
@@ -136,8 +141,9 @@ for i in range(0, notracks):
 					sector = de_gcr_byte(header_data, j + 20)
 					track = de_gcr_byte(header_data, j + 30)
 					is_header = True
-					y = y_for_track_sector(track, sector)
-#					print "header", track, sector
+					y = y_for_track_sector(trackno, sector)
+					if verbose:
+						print "header", track, sector
 					x = 20
 				elif code == 7: # data
 					if is_header:
@@ -157,11 +163,12 @@ for i in range(0, notracks):
 							print "Warning: No header, but short data! Assuming repeated sector {}".format(sector)
 						else:
 							sector += 1
-							if sector > sectors_for_track(track):
+							if sector > sectors_for_track(trackno):
 								sectors = 0
 							print "Warning: No header! Assuming sector {}".format(sector)
-					y = y_for_track_sector(track, sector)
-#					print "data", track, sector
+					y = y_for_track_sector(trackno, sector)
+					if verbose:
+						print "data  ", trackno, sector
 					x = 190
 				else:
 					print "Warning: Code {}".format(code)
@@ -169,6 +176,9 @@ for i in range(0, notracks):
 					sector = de_gcr_byte(header_data, j + 20)
 					track = de_gcr_byte(header_data, j + 30)
 					y = sizey
+				if sector >= sectors_for_track(trackno):
+					print "Warning: Extra sector {}".format(sector)
+
 
 			if not is_sync:
 				pixel = bit * 255
