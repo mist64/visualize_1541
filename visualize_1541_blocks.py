@@ -1,6 +1,63 @@
 import sys, math
 from PIL import Image, ImageDraw
 
+def get_8_bits(data, offset):
+	byte_offset = offset / 8
+	bit_offset = offset % 8
+	byte = data[byte_offset]
+	next_byte = data[byte_offset + 1]
+	byte_part = (byte & (((1 << (8 - bit_offset)) - 1))) << bit_offset
+	byte_part_2 = next_byte >> (8 - bit_offset)
+	return byte_part | byte_part_2
+
+def get_5_bits(data, offset):
+	return get_8_bits(data, offset) >> 3
+
+def de_gcr(a):
+	gcr_code = [
+		0b01010,
+		0b01011,
+		0b10010,
+		0b10011,
+		0b01110,
+		0b01111,
+		0b10110,
+		0b10111,
+		0b01001,
+		0b11001,
+		0b11010,
+		0b11011,
+		0b01101,
+		0b11101,
+		0b11110,
+		0b10101
+	]
+	return gcr_code.index(a)
+
+def de_gcr_byte(data, offset):
+	return de_gcr(get_5_bits(data, offset)) << 4 | de_gcr(get_5_bits(data, offset + 5))
+
+def speed_for_track(track):
+	if track < 18:
+		return 3
+	if track < 25:
+		return 2
+	if track < 31:
+		return 1
+	return 0
+
+def sectors_for_track(track):
+	return [17, 18, 19, 21][speed_for_track(track)]
+
+def sector_offset_for_track(track):
+	ret = 0
+	for i in range(1, track):
+		ret += sectors_for_track(i)
+	return ret
+
+def y_for_track_sector(track, sector):
+	return sector_offset_for_track(track) + 2 * (track - 1) + sector
+
 filename_in = sys.argv[1]
 filename_out = sys.argv[2]
 
@@ -11,11 +68,17 @@ version = data[8]
 notracks = data[9]
 tracksize = data[10] | data[11] << 8
 
-img = Image.new('RGB', (8000, 2000), color = 'white')
+sizex = 3000
+sizey= 750
+img = Image.new('RGB', (sizex, sizey), color = 'white')
 pixels = img.load()
 
-x = 0
-y = 0
+# draw outside = don't draw
+x = sizex
+y = sizey
+
+track = 0x00
+sector = 0xff
 
 for i in range(0, notracks):
 	trackno = i / 2 + 1
@@ -53,36 +116,52 @@ for i in range(0, notracks):
 			else:
 				one_bits = 0
 				if is_sync:
-					remaining_bits = 7 - j
-					byte_part = (byte & (((1 << (remaining_bits + 1)) - 1))) << j
-					next_byte = data[offset + i + 2 + 1]
-					byte_part_2 = next_byte >> (8 - j)
-					next_8_bits = byte_part | byte_part_2
-#					print j, hex(byte), hex(byte_part), hex(next_byte), hex(byte_part_2), hex(next_8_bits)
-					if next_8_bits == 0x52:
+					header_data = data[offset + i + 2:]
+					next_8_bits = get_8_bits(header_data, j)
+					print "	Code {}".format(hex(next_8_bits))
+					if next_8_bits == 0x52: # header
+						code = de_gcr_byte(header_data, j)
+						checksum = de_gcr_byte(header_data, j + 10)
+						sector = de_gcr_byte(header_data, j + 20)
+						track = de_gcr_byte(header_data, j + 30)
 						is_header = True
-					else:
-						is_header = False # 0x55
-
-					if is_header:
-						y += 1
+						y = y_for_track_sector(track, sector)
+						print "header", track, sector
 						x = 0
+					elif next_8_bits == 0x55: # data
+						if is_header:
+							is_header = False
+						else:
+							sector += 1
+							if sector > sectors_for_track(track):
+								sectors = 0
+							print "Warning: No header! Assuming sector {}".format(sector)
+						y = y_for_track_sector(track, sector)
+						print "data", track, sector
+						print "XXX", track, sector, checksum, code
+						x = 170
 					else:
-						x = 200
+						print "Warning: Code {}".format(next_8_bits)
+						code = de_gcr_byte(header_data, j)
+						checksum = de_gcr_byte(header_data, j + 10)
+						sector = de_gcr_byte(header_data, j + 20)
+						track = de_gcr_byte(header_data, j + 30)
+						y = sizey
+
+
 				is_sync = False;
 
-			if is_sync:
-				value = (0xff, 0, 0) # red
-			else:
+			if not is_sync:
 				pixel = bit * 255
 				if is_header:
-					value = (0, 0, pixel) # shades of blue
+					value = (0, pixel, pixel) # shades of blue
 				else:
 					value = (0, pixel, 0) # shades of green
+				if x < sizex and y < sizey:
+					pixels[x, y] = value
 				x += 1
 
-#			print x,y
-			pixels[x, y] = value
+	y += 1
 
 #img = img.resize((size / 4, size / 4), Image.ANTIALIAS)
 #img = img.resize((size / 16, size / 16), Image.ANTIALIAS)
