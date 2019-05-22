@@ -103,6 +103,7 @@ for i in range(0, notracks):
 	one_bits = 0
 	is_sync = False
 	is_header = False
+	last_sync = 0
 
 	for i in range(0, len):
 		byte = data[offset + i + 2]
@@ -116,33 +117,46 @@ for i in range(0, notracks):
 			else:
 				one_bits = 0
 				if is_sync:
+					was_short_data = not is_header and  i - last_sync < 320
+					if was_short_data:
+						print "Warning: Sector {}: short data: {} bytes".format(sector, i - last_sync)
+					last_sync = i
 					header_data = data[offset + i + 2:]
-					next_8_bits = get_8_bits(header_data, j)
-					print "	Code {}".format(hex(next_8_bits))
-					if next_8_bits == 0x52: # header
-						code = de_gcr_byte(header_data, j)
+					code = de_gcr_byte(header_data, j)
+					if code == 8: # header
 						checksum = de_gcr_byte(header_data, j + 10)
 						sector = de_gcr_byte(header_data, j + 20)
 						track = de_gcr_byte(header_data, j + 30)
 						is_header = True
 						y = y_for_track_sector(track, sector)
-						print "header", track, sector
+#						print "header", track, sector
 						x = 0
-					elif next_8_bits == 0x55: # data
+					elif code == 7: # data
 						if is_header:
 							is_header = False
 						else:
-							sector += 1
-							if sector > sectors_for_track(track):
-								sectors = 0
-							print "Warning: No header! Assuming sector {}".format(sector)
+							if was_short_data:
+								# Common error: The drive wrote the sector too late,
+								# so the original SYNC and ~28 GCR bytes are still intact,
+								# but aborted, followed by the newly written SYNC and
+								# the new data. We will ignore the aborted sector and
+								# assume the data after the SYNC is the correct version
+								# of the same sector.
+								# Note that this error probably also means that the next
+								# sector's header is missing (which we can recover from),
+								# and maybe even the SYNC of the next data block is missing
+								# (which we can't recover from).
+								print "Warning: No header, but short data! Assuming repeated sector {}".format(sector)
+							else:
+								sector += 1
+								if sector > sectors_for_track(track):
+									sectors = 0
+								print "Warning: No header! Assuming sector {}".format(sector)
 						y = y_for_track_sector(track, sector)
-						print "data", track, sector
-						print "XXX", track, sector, checksum, code
+#						print "data", track, sector
 						x = 170
 					else:
-						print "Warning: Code {}".format(next_8_bits)
-						code = de_gcr_byte(header_data, j)
+						print "Warning: Code {}".format(code)
 						checksum = de_gcr_byte(header_data, j + 10)
 						sector = de_gcr_byte(header_data, j + 20)
 						track = de_gcr_byte(header_data, j + 30)
