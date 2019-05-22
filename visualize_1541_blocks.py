@@ -100,70 +100,69 @@ for i in range(0, notracks):
 
 	print "track {}, offset {}, size {}, speed {}, capacity {}".format(trackno, offset, len, speed, sector_capacity / 8)
 
-	one_bits = 0
 	is_sync = False
 	is_header = False
 	last_sync = 0
 
+	track_data = data[offset + 2:]
+
 	for i in range(0, len):
-		byte = data[offset + i + 2]
+		byte = track_data[i]
 
 		for j in range(0, 8):
 			bit = ((byte << j) & 0x80) >> 7
-			if bit > 0:
-				one_bits += 1
-				if one_bits >= 10:
-					is_sync = True;
-			else:
-				one_bits = 0
-				if is_sync:
-					was_short_data = not is_header and  i - last_sync < 320
-					if was_short_data:
-						print "Warning: Sector {}: short data: {} bytes".format(sector, i - last_sync)
-					last_sync = i
-					header_data = data[offset + i + 2:]
-					code = de_gcr_byte(header_data, j)
-					if code == 8: # header
-						checksum = de_gcr_byte(header_data, j + 10)
-						sector = de_gcr_byte(header_data, j + 20)
-						track = de_gcr_byte(header_data, j + 30)
-						is_header = True
-						y = y_for_track_sector(track, sector)
-#						print "header", track, sector
-						x = 0
-					elif code == 7: # data
-						if is_header:
-							is_header = False
-						else:
-							if was_short_data:
-								# Common error: The drive wrote the sector too late,
-								# so the original SYNC and ~28 GCR bytes are still intact,
-								# but aborted, followed by the newly written SYNC and
-								# the new data. We will ignore the aborted sector and
-								# assume the data after the SYNC is the correct version
-								# of the same sector.
-								# Note that this error probably also means that the next
-								# sector's header is missing (which we can recover from),
-								# and maybe even the SYNC of the next data block is missing
-								# (which we can't recover from).
-								print "Warning: No header, but short data! Assuming repeated sector {}".format(sector)
-							else:
-								sector += 1
-								if sector > sectors_for_track(track):
-									sectors = 0
-								print "Warning: No header! Assuming sector {}".format(sector)
-						y = y_for_track_sector(track, sector)
-#						print "data", track, sector
-						x = 170
-					else:
-						print "Warning: Code {}".format(code)
-						checksum = de_gcr_byte(header_data, j + 10)
-						sector = de_gcr_byte(header_data, j + 20)
-						track = de_gcr_byte(header_data, j + 30)
-						y = sizey
+			data2 = track_data[i:]
+			if get_5_bits(data2, j) == 0x1F and get_5_bits(data2, j + 5) == 0x1F:
+				is_sync = True
 
-
+			if is_sync and bit == 0:
 				is_sync = False;
+
+				was_short_data = not is_header and  i - last_sync < 320
+				if was_short_data:
+					print "Warning: Sector {}: short data: {} bytes".format(sector, i - last_sync)
+
+				last_sync = i
+				header_data = track_data[i:]
+				code = de_gcr_byte(header_data, j)
+				if code == 8: # header
+					checksum = de_gcr_byte(header_data, j + 10)
+					sector = de_gcr_byte(header_data, j + 20)
+					track = de_gcr_byte(header_data, j + 30)
+					is_header = True
+					y = y_for_track_sector(track, sector)
+#					print "header", track, sector
+					x = 0
+				elif code == 7: # data
+					if is_header:
+						is_header = False
+					else:
+						if was_short_data:
+							# Common error: The drive wrote the sector too late,
+							# so the original SYNC and ~28 GCR bytes are still intact,
+							# but aborted, followed by the newly written SYNC and
+							# the new data. We will ignore the aborted sector and
+							# assume the data after the SYNC is the correct version
+							# of the same sector.
+							# Note that this error probably also means that the next
+							# sector's header is missing (which we can recover from),
+							# and maybe even the SYNC of the next data block is missing
+							# (which we can't recover from).
+							print "Warning: No header, but short data! Assuming repeated sector {}".format(sector)
+						else:
+							sector += 1
+							if sector > sectors_for_track(track):
+								sectors = 0
+							print "Warning: No header! Assuming sector {}".format(sector)
+					y = y_for_track_sector(track, sector)
+#					print "data", track, sector
+					x = 170
+				else:
+					print "Warning: Code {}".format(code)
+					checksum = de_gcr_byte(header_data, j + 10)
+					sector = de_gcr_byte(header_data, j + 20)
+					track = de_gcr_byte(header_data, j + 30)
+					y = sizey
 
 			if not is_sync:
 				pixel = bit * 255
