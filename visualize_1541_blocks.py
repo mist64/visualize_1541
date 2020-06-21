@@ -127,7 +127,7 @@ for i in range(0, notracks):
 				is_sync = True
 
 			if is_sync and bit == 0:
-				is_sync = False;
+				is_sync = False
 
 				was_short_data = not before_first_sync and not is_header and  i - last_sync < 320
 				if was_short_data:
