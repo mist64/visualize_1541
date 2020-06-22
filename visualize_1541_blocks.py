@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import sys, math
 from PIL import Image, ImageDraw
 
@@ -7,7 +8,7 @@ sizex = 3000
 sizey = 927
 
 def get_8_bits(data, offset):
-	byte_offset = offset / 8
+	byte_offset = offset // 8
 	bit_offset = offset % 8
 	byte = data[byte_offset]
 	next_byte = data[byte_offset + 1]
@@ -90,7 +91,7 @@ x = sizex
 y = sizey
 
 for i in range(0, notracks):
-	trackno = i / 2 + 1
+	trackno = i // 2 + 1
 
 	track_y = y_for_track_sector(trackno, 0)
 	draw.line((0, track_y - 2, sizex - 1, track_y - 2), fill = (0xc0, 0xc0, 0xc0), width = 1)
@@ -105,7 +106,7 @@ for i in range(0, notracks):
 
 	sectorlen = len * 8
 
-	print "track {}, offset {}, size {}, speed {}".format(trackno, offset, len, speed)
+	print("track {}, offset {}, size {}, speed {}".format(trackno, offset, len, speed))
 
 	is_sync = False
 	is_header = False
@@ -126,11 +127,11 @@ for i in range(0, notracks):
 				is_sync = True
 
 			if is_sync and bit == 0:
-				is_sync = False;
+				is_sync = False
 
 				was_short_data = not before_first_sync and not is_header and  i - last_sync < 320
 				if was_short_data:
-					print "Warning: Sector {}: short data: {} bytes".format(sector, i - last_sync)
+					print("Warning: Sector {}: short data: {} bytes".format(sector, i - last_sync))
 				before_first_sync = False
 
 				last_sync = i
@@ -143,7 +144,7 @@ for i in range(0, notracks):
 					is_header = True
 					y = y_for_track_sector(trackno, sector)
 					if verbose:
-						print "header", track, sector
+						print("header", track, sector)
 					x = 20
 				elif code == 7: # data
 					if is_header:
@@ -160,24 +161,24 @@ for i in range(0, notracks):
 							# sector's header is missing (which we can recover from),
 							# and maybe even the SYNC of the next data block is missing
 							# (which we can't recover from).
-							print "Warning: No header, but short data! Assuming repeated sector {}".format(sector)
+							print("Warning: No header, but short data! Assuming repeated sector {}".format(sector))
 						else:
 							sector += 1
 							if sector > sectors_for_track(trackno):
 								sectors = 0
-							print "Warning: No header! Assuming sector {}".format(sector)
+							print("Warning: No header! Assuming sector {}".format(sector))
 					y = y_for_track_sector(trackno, sector)
 					if verbose:
-						print "data  ", trackno, sector
+						print("data  ", trackno, sector)
 					x = 190
 				else:
-					print "Warning: Code {}".format(code)
+					print("Warning: Code {}".format(code))
 					checksum = de_gcr_byte(header_data, j + 10)
 					sector = de_gcr_byte(header_data, j + 20)
 					track = de_gcr_byte(header_data, j + 30)
 					y = sizey
 				if sector >= sectors_for_track(trackno):
-					print "Warning: Extra sector {}".format(sector)
+					print("Warning: Extra sector {}".format(sector))
 
 
 			if not is_sync:
@@ -192,6 +193,6 @@ for i in range(0, notracks):
 
 	y += 1
 
-#img = img.resize((size / 4, size / 4), Image.ANTIALIAS)
-#img = img.resize((size / 16, size / 16), Image.ANTIALIAS)
+#img = img.resize((size // 4, size // 4), Image.ANTIALIAS)
+#img = img.resize((size // 16, size // 16), Image.ANTIALIAS)
 img.save(filename_out)
