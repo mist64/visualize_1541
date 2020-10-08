@@ -1,3 +1,5 @@
+#!/usr/local/bin/python3
+
 import sys, math
 from PIL import Image, ImageDraw
 
@@ -38,7 +40,7 @@ for i in range(0, notracks):
 	if float(sectorlen) / sector_capacity > .993:
 		sector_capacity = sectorlen
 
-	print "track {}, offset {}, size {}, speed {}, capacity {}".format(trackno, offset, len, speed, sector_capacity / 8)
+	print("track {}, offset {}, size {}, speed {}, capacity {}".format(trackno, offset, len, speed, sector_capacity / 8))
 
 	for i in range(0, sectorlen):
 		angle = float(i) / sector_capacity * 2 * math.pi
@@ -46,7 +48,7 @@ for i in range(0, notracks):
 		y1 = int(round(size / 2 + radius1 * math.cos(angle)))
 		x2 = int(round(size / 2 + radius2 * math.sin(angle)))
 		y2 = int(round(size / 2 + radius2 * math.cos(angle)))
-		byte = data[offset + i / 8 + 2]
+		byte = data[int(offset + i / 8) + 2]
 		if byte == 0x00:
 			value = (0, 0, 0xff) # empty = blue
 		elif byte == 0xff:
@@ -57,5 +59,5 @@ for i in range(0, notracks):
 
 		draw.line((x1, y1, x2, y2), fill = value, width = 2)
 
-img = img.resize((size / 16, size / 16), Image.ANTIALIAS)
+img = img.resize((int(size / 16), int(size / 16)), Image.ANTIALIAS)
 img.save(filename_out)
