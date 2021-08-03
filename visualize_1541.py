@@ -19,6 +19,8 @@ draw = ImageDraw.Draw(img)
 
 track_distance = size / 150
 
+print("signature {}, version {}, notracks {}, tracksize {}, track_distance {}".format(signature, version, notracks, tracksize, track_distance))
+
 for i in range(0, notracks):
 	trackno = i / 2 + 1
 	offset = data[12 + 4 * i] | data[12 + 4 * i + 1] << 8 | data[12 + 4 * i + 2] << 16 | data[12 + 4 * i + 3] << 24
