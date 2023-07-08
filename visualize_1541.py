@@ -59,5 +59,5 @@ for i in range(0, notracks):
 
 		draw.line((x1, y1, x2, y2), fill = value, width = 2)
 
-img = img.resize((int(size / 16), int(size / 16)), Image.ANTIALIAS)
+img = img.resize((int(size / 16), int(size / 16)), Image.LANCZOS)
 img.save(filename_out)
