@@ -5,8 +5,17 @@
     <script src="visualize_1541.js"></script>
 </head>
 <body>
-    <script type="module">
-        renderImage("http://domain.com/disk.g64");
-    </script>    
+    <input type="file" id="g64file" accept=".g64,.G64">
+    <script>
+        document.getElementById('g64file').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                renderImageFromData(new Uint8Array(e.target.result), file.name);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
 </body>    
 </html>

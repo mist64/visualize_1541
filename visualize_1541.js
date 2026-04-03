@@ -24,10 +24,8 @@ function bin2String(array, start, end)
 }
 
 
-function renderImage(source_url)
+function renderImageFromData(data, filename)
 {
-	data = load_binary_resource(source_url);
-	filename = source_url.toString().match(/.*\/(.+?)$/)[1];
 	console.log(filename);
 
 	signature = bin2String(data, 0, 7);

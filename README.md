@@ -30,6 +30,10 @@ This representation is useful to visualize errors on Commodore-formatted disks. 
 
       python visualize_1541_blocks.py disk.g64 disk.png
 
+## JavaScript Version
+
+A JavaScript version by [Jaime Idolpx](https://github.com/idolpx) is also available. Open `visualize_1541.html` in a browser and select a `.g64` file to visualize.
+
 ## More Information
 
 There are two articles about these tools:
