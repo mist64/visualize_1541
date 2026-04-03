@@ -32,7 +32,7 @@ This representation is useful to visualize errors on Commodore-formatted disks. 
 
 ## JavaScript Version
 
-A JavaScript version by [Jaime Idolpx](https://github.com/idolpx) is also available. Open `visualize_1541.html` in a browser and select a `.g64` file to visualize.
+A JavaScript version by [Jaime Idolpx](https://github.com/idolpx) is also available. Open `visualize_1541.html` in a browser and select a `.g64` file to visualize, or try it online at https://pagetable.com/docs/visualize_1541/.
 
 ## More Information
 
